@@ -1,0 +1,10 @@
+{
+  "tasks": {
+    "test": "deno test -A",
+    "ros2-docs": "deno run --allow-net --allow-write --allow-env src/ros2-docs/main.ts"
+  },
+  "imports": {
+    "@std/yaml": "jsr:@std/yaml@^0.220.1",
+    "sitemapper": "npm:sitemapper@^3.2.8"
+  }
+}
