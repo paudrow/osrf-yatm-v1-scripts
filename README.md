@@ -27,3 +27,5 @@ Available tasks:
 - ros2-docs
     deno run --allow-net --allow-write --allow-env src/ros2-docs/main.ts
 ```
+
+You can run `deno task <task>` to run a task.
