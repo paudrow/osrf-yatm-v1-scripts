@@ -1,7 +1,5 @@
 import { distroToDocsRequirementsYaml } from "./distro-to-requirements-yaml.ts";
-
-import { Application } from "jsr:@oak/oak/application";
-import { Router } from "jsr:@oak/oak/router";
+import { Application, Router } from "jsr:@oak/oak";
 
 const router = new Router();
 router.get("/", (ctx) => {
@@ -15,6 +13,11 @@ router.get("/", (ctx) => {
       </body>
     </html>
   `;
+});
+
+router.get("/health", (ctx) => {
+  ctx.response.body = "OK";
+  ctx.response.status = 200;
 });
 
 router.get("/:distro", async (ctx) => {
