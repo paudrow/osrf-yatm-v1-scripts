@@ -1,25 +1,24 @@
 import Sitemapper from "npm:sitemapper";
 import type { Page } from "./types.ts";
 import type { Requirement, Requirements } from "../common/types.ts";
-import { saveRequirementsToFile } from "../common/save-requirements-file.ts";
+import { stringify } from "jsr:@std/yaml";
+import { Err, Ok, Result } from "jsr:@oxi/result";
 
-export async function cli(args: string[]) {
-  // Parse the command line arguments
-  if (args.length !== 1) {
-    console.error("Usage: <distro>");
-    Deno.exit(1);
-  }
-  const distro = args[0];
-
+export async function distroToDocsRequirementsYaml(
+  distro: string,
+): Promise<Result<string, Error>> {
   // Make requirements from the sitemap
   const sitemapUrl = new URL(`https://docs.ros.org/en/${distro}/sitemap.xml`);
-  const pages = await sitemapUrlToPages(sitemapUrl, ["en", distro]);
+  const result = await sitemapUrlToPages(sitemapUrl, ["en", distro]);
+  if (result.isErr()) {
+    return Err(result.unwrapErr());
+  }
+  const pages = result.unwrap();
   const requirements: Requirements = {
     requirements: pagesToRequirements(pages, ["docs"]),
   };
 
-  // Save the requirements to a file
-  saveRequirementsToFile(requirements);
+  return Ok(stringify(requirements));
 }
 
 function pagesToRequirements(
@@ -52,9 +51,16 @@ function pagesToRequirements(
   ));
 }
 
-async function sitemapUrlToPages(url: URL, urlPartsToIgnore: string[]) {
-  const sites = await getSitemapSites(url);
-  return sites.map((site) => urlToPage(site, urlPartsToIgnore));
+async function sitemapUrlToPages(
+  url: URL,
+  urlPartsToIgnore: string[],
+): Promise<Result<Page[], Error>> {
+  const result = await getSitemapSites(url);
+  if (result.isErr()) {
+    return Err(result.unwrapErr());
+  }
+  const sites = result.unwrap();
+  return Ok(sites.map((site) => urlToPage(site, urlPartsToIgnore)));
 }
 
 function urlToPage(url: URL, urlPartsToIgnore: string[]): Page {
@@ -74,13 +80,15 @@ function urlToPage(url: URL, urlPartsToIgnore: string[]): Page {
   };
 }
 
-async function getSitemapSites(url: URL): Promise<URL[]> {
+async function getSitemapSites(url: URL): Promise<Result<URL[], Error>> {
   // @ts-expect-error - The type definitions for sitemapper are incorrect
   const sitemap = new Sitemapper();
-  const { sites } = await sitemap.fetch(url);
-  return sites.map((site: string) => new URL(site));
+  const { sites, errors } = await sitemap.fetch(url);
+
+  if (errors.length > 0) {
+    return Err(errors[0]);
+  }
+  return Ok(sites.map((site: string) => new URL(site)));
 }
 
-if (import.meta.main) {
-  await cli(Deno.args);
-}
+await distroToDocsRequirementsYaml("rolln");
